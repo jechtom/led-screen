@@ -1,0 +1,95 @@
+# DIY Led Matrix Display
+
+## Protocol
+
+Binary custom protocol between host device and display (Arduino) over COM port to control the display.
+
+### Command `SET BANKS`
+
+Sets value of up to 256 banks. Each bank represents preset of 8&times;8 LED segment as 8 bytes. Setting bank stops current animation as it is expected to be followed by `SET FRAMES` commands.
+
+On startup all banks are zeroes and display is empty.
+
+```
+Host sends command:
+
+0A 42 XX XX { XX[8] }
+++ ++ ++ ++ +-|-----+
+|  |  |  |  | |
+|  |  |  |  | Bank value (each 8 bytes)
+|  |  |  |  |
+|  |  |  |  Bank values
+|  |  |  |
+|  |  |  End bank index (0-255)
+|  |  |
+|  |  Start bank index (0-255)
+|  |
+|  Command constant ('B')
+|
+All commands start with 0A (\n)
+
+Display reply:
+
+4B
+++
+|
+OK constance ('K')
+```
+
+Example - set banks 3-4. Set `bank 3` to `0xFFFFFFFFFFFFFFFF` and `bank 4` to `0xAAAAAAAAAAAAAAAA`.
+
+```
+Host sends command:
+
+0A 42 03 04 FF FF FF FF FF FF FF FF AA AA AA AA AA AA AA AA
+
+Display reply:
+
+4B
+```
+
+### Command `SET FRAMES`
+
+Defines frame or animation frames built from references to specific banks and shows it on display.
+
+```
+Host sends command:
+
+0A 46 XX { XX[16] XX }
+++ ++ ++ +-|------|--+
+|  |  |  | |      |
+|  |  |  | |      Delay before next frame (0 = never, 1-255 = delay; see remark)
+|  |  |  | |
+|  |  |  | Bank indices for each of 16 segments (16 values of 0-255)
+|  |  |  |
+|  |  |  Frames data
+|  |  |
+|  |  Frames count (0-25; 0 = clear display)
+|  |
+|  Command constant ('F')
+|
+All commands start with 0A (\n)
+
+Display reply:
+
+4B
+++
+|
+OK constance ('K')
+```
+
+Remark: Delay is 10ms-2550ms (value is ×10ms).
+
+Example - set 2 frames: set all segments to bank `0x05`, wait 70ms, set all segments to bank `0x06` and wait 70ms and repeat.
+
+```
+Host sends command:
+
+0A 46 02 /* header */
+05 05 05 05 05 05 05 05 05 05 05 05 05 05 05 05 07 /* frame 1 */
+06 06 06 06 06 06 06 06 06 06 06 06 06 06 06 06 07 /* frame 2 */
+
+Display reply:
+
+4B
+```
