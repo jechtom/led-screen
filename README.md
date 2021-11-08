@@ -52,7 +52,7 @@ Display reply:
 
 ### Command `SET FRAMES`
 
-Defines frame or animation frames built from references to specific banks and shows it on display.
+Defines frame or animation frames (up to 25) built from references to specific banks and starts with rendering it on display.
 
 ```
 Host sends command:
