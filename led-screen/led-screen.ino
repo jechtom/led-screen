@@ -12,6 +12,15 @@ int CLK2 = 7;
 int SegmentsWidth = 8;
 int SegmentsHeight = 2;
 
+unsigned long animationNextFrameMs = 0;
+
+byte command_buffer[256];
+int command_buffer_used = 0;
+const byte command_op_magic = 0x0A; // line feed (\n) is start byte of every message
+const byte command_op_ok = 0x4B; // 'K' success code returned
+const byte command_op_set_banks = 0x42; // 'B' command SET BANKS
+const byte command_op_set_frames = 0x46; // 'F' command SET FRAMES
+
 LedControl lc = LedControl(DIN,CLK,CS,SegmentsWidth);
 LedControl lc2 = LedControl(DIN2,CLK2,CS2,SegmentsWidth);
 
@@ -41,27 +50,12 @@ void setup(){
 
 
 void loop(){ 
-  printBuffer(testScreen);
-  delay(700);
-  printBuffer(testScreen2);
-  delay(300);
-     /*
-    printByte(f, false);
-     
-    delay(500);
+  unsigned long currentMillis = millis();
 
-    printByte(g, false);
-    
-   delay(500);
-
-    printByte(f, true);
-     
-    delay(500);
-
-    printByte(g, true);
-    */
-
-
+  if(animationNextFrameMs <= currentMillis) {
+    processNextFrame();
+  }
+  
     
   /* 
    for(int index=0;index<lc.getDeviceCount();index++) {
@@ -70,6 +64,26 @@ void loop(){
     
     delay(500);
     */
+}
+
+
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (byte)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag so the main loop can
+    // do something about it:
+    if (inChar == '\n') {
+      stringComplete = true;
+    }
+  }
+}
+
+void processNextFrame() {
+  printBuffer(testScreen);
+  animationNextFrameMs = millis() + 500;
 }
 
 void printBuffer(byte buffer [])

@@ -24,9 +24,9 @@ Host sends command:
 |  |  |
 |  |  Start bank index (0-255)
 |  |
-|  Command constant ('B')
+|  Command `SET BANKS` constant 0x42 (char B)
 |
-All commands start with 0A (\n)
+All commands starts with 0A (\n)
 
 Display reply:
 
@@ -41,7 +41,9 @@ Example - set banks 3-4. Set `bank 3` to `0xFFFFFFFFFFFFFFFF` and `bank 4` to `0
 ```
 Host sends command:
 
-0A 42 03 04 FF FF FF FF FF FF FF FF AA AA AA AA AA AA AA AA
+0A 42 03 04 /* header */
+FF FF FF FF FF FF FF FF /* bank 3 */
+AA AA AA AA AA AA AA AA /* bank 4 */
 
 Display reply:
 
@@ -66,9 +68,9 @@ Host sends command:
 |  |  |
 |  |  Frames count (0-25; 0 = clear display)
 |  |
-|  Command constant ('F')
+|  Command `SET BANKS` constant 0x46 (char F)
 |
-All commands start with 0A (\n)
+All commands starts with 0A (\n)
 
 Display reply:
 
