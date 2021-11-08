@@ -4,9 +4,13 @@
 
 Binary custom protocol between host device and display (Arduino) over COM port to control the display.
 
+Response is `4B` ('K') for OK (success) or `45` ('E') for error (failure). 
+
+Request message limit is 256 bytes.
+
 ### Command `SET BANKS`
 
-Sets value of up to 256 banks. Each bank represents preset of 8&times;8 LED segment as 8 bytes. Setting bank stops current animation as it is expected to be followed by `SET FRAMES` commands.
+Sets value of up to 64 banks. Each bank represents preset of 8&times;8 LED segment as 8 bytes. Setting bank stops current animation as it is expected to be followed by `SET FRAMES` commands.
 
 On startup all banks are zeroes and display is empty.
 
@@ -16,13 +20,13 @@ Host sends command:
 0A 42 XX XX { XX[8] }
 ++ ++ ++ ++ +-|-----+
 |  |  |  |  | |
-|  |  |  |  | Bank value (each 8 bytes)
+|  |  |  |  | Bank 8 byte value
 |  |  |  |  |
-|  |  |  |  Bank values
+|  |  |  |  Bank values (each 8 bytes)
 |  |  |  |
-|  |  |  End bank index (0-255)
+|  |  |  End bank index (0-63)
 |  |  |
-|  |  Start bank index (0-255)
+|  |  Start bank index (0-63)
 |  |
 |  Command `SET BANKS` constant 0x42 (char B)
 |
@@ -52,7 +56,7 @@ Display reply:
 
 ### Command `SET FRAMES`
 
-Defines frame or animation frames (up to 25) built from references to specific banks and starts with rendering it on display.
+Defines frame or animation frames (up to 16) built from references to specific banks and starts with rendering it on display.
 
 ```
 Host sends command:
@@ -62,11 +66,11 @@ Host sends command:
 |  |  |  | |      |
 |  |  |  | |      Delay before next frame (0 = never, 1-255 = delay; see remark)
 |  |  |  | |
-|  |  |  | Bank indices for each of 16 segments (16 values of 0-255)
+|  |  |  | Bank indices for each of 16 segments (16 bytes)
 |  |  |  |
-|  |  |  Frames data
+|  |  |  Frames data (each 17 bytes)
 |  |  |
-|  |  Frames count (0-25; 0 = clear display)
+|  |  Frames count (0-16; 0 = clear display)
 |  |
 |  Command `SET BANKS` constant 0x46 (char F)
 |
