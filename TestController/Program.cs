@@ -6,7 +6,7 @@ Console.WriteLine("Hello, World!");
 
 var font = FontLoader.Load(@"fonts\ISO88591-8x16.font.txt");
 
-using var port = new SerialPort("COM5", 9600);
+using var port = new SerialPort("COM6", 9600);
 port.DataReceived += DataReceived;
 port.Open();
 

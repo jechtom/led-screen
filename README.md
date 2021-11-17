@@ -4,7 +4,13 @@
 
 Binary custom protocol between host device and display (Arduino) over COM port to control the display.
 
-Response is `4B` ('K') for OK (success) or `45` ('E') for error (failure). 
+Response is:
+
+* `4B` ('K') for status OK (success)
+* or `45` ('E') for status ERROR (failure)
+* all other responses are debug responses and can be ignored
+
+After each status response (OK or ERROR) client can start with transmitting new command.
 
 Request message limit is 256 bytes.
 
