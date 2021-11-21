@@ -25,12 +25,12 @@ byte command_receive_length = 0;
 const byte command_op_start = 0x0A; // line feed (\n) is start byte of every message
 const byte command_op_ok = 0x4B; // 'K' success code returned
 const byte command_op_err = 0x45; // 'E' error code returned
-const byte command_op_buffer_empty = 0x2E; // '.' buffer empty
 const byte command_op_set_banks = 0x42; // 'B' command SET BANKS
 const byte command_op_set_frames = 0x46; // 'F' command SET FRAMES
+#define DEBUG_SERIAL 1
 
 /* BANKS */
-const int banks_count = 64;
+const int banks_count = 32;
 byte banks_data[banks_count * 8];
 
 /* FRAMES */
@@ -44,6 +44,11 @@ bool frames_next_enabled = false;
 
 LedControl lc = LedControl(DIN, CLK, CS, segmentsWidth);
 LedControl lc2 = LedControl(DIN2, CLK2, CS2, segmentsWidth);
+
+byte f[8] = {0x00, 0x66, 0xFF, 0xFF, 0x7E, 0x3C, 0x18, 0x00,};
+byte g[8] = {0xFF, 0x99, 0x00, 0x00, 0x81, 0xC3, 0xE7, 0xFF,};
+byte h[8] = {0x00, 0x66, 0xFF, 0xFF, 0x7E, 0x3C, 0x18, 0x00,};
+byte i[8] = {0xFF, 0x99, 0x00, 0x00, 0x81, 0xC3, 0xE7, 0xFF,};
 
 void setup() {
   Serial.begin(9600);
@@ -113,7 +118,7 @@ void serialEvent() {
 
     command_buffer[command_buffer_used++] = (byte)Serial.read();
     #ifdef DEBUG_SERIAL
-    Serial.write('r');
+    Serial.write('.');
     #endif
           
     // detect length
@@ -177,7 +182,6 @@ void serialEvent() {
         continue;
     }
   }
-  Serial.write(command_op_buffer_empty);
 }
 
 void parseSetBanks() {

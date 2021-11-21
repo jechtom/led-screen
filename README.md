@@ -8,11 +8,16 @@ Response is:
 
 * `4B` ('K') for status OK (success)
 * or `45` ('E') for status ERROR (failure)
-* all other responses are debug responses and can be ignored
+* or `2E` ('.') as info that receive buffer is empty and device is ready for next data segment - see buffer limitations section
+* all other responses are debug responses and can be ignored; lower-case letters are debug symbols
 
 After each status response (OK or ERROR) client can start with transmitting new command.
 
 Request message limit is 256 bytes.
+
+### Buffer limitations
+
+Due to limited RX buffer you need to split message up to 16 bytes segments. After sending each segment you need to wait for receive buffer empty message.
 
 ### Command `SET BANKS`
 
