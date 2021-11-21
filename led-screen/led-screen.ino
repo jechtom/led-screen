@@ -27,6 +27,7 @@ const byte command_op_ok = 0x4B; // 'K' success code returned
 const byte command_op_err = 0x45; // 'E' error code returned
 const byte command_op_set_banks = 0x42; // 'B' command SET BANKS
 const byte command_op_set_frames = 0x46; // 'F' command SET FRAMES
+#define DEBUG_SERIAL 1
 
 /* BANKS */
 const int banks_count = 64;
@@ -97,6 +98,7 @@ void loop() {
 
 void serialEvent() {
   while (Serial.available()) {
+  
     // wait for start byte
     if (!command_receive_start)
     {
@@ -104,6 +106,9 @@ void serialEvent() {
       {
         command_receive_start = true;
       }
+      #if DEBUG_SERIAL
+      Serial.write(command_receive_start ? 'S' : '?');
+      #endif
       continue;
     }
 
@@ -115,11 +120,13 @@ void serialEvent() {
       {
         case command_op_set_banks:
         case command_op_set_frames:
+          #if DEBUG_SERIAL
+          Serial.write('A');
+          #endif
           command_receive_op_known = true;
           break;
         default:
           // unknown command
-          Serial.write(command_op_err);
           commandReset(false /* success */);
           break;
       }
@@ -134,7 +141,10 @@ void serialEvent() {
     }
 
     command_buffer[command_buffer_used++] = (byte)Serial.read();
-
+    #if DEBUG_SERIAL
+    Serial.write('.');
+    #endif
+          
     // detect length
     if (!command_receive_length_known)
     {
