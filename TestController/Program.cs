@@ -4,14 +4,40 @@ using TestController;
 
 Console.WriteLine("Hello, World!");
 
-var font = FontLoader.Load(@"fonts\ISO88591-8x16.font.txt");
+var font = FontLoader.Load(@"fonts\ISO88591-8x16.font.txt").AddMargin(2);
 
 using var port = new SerialPort("COM5", 9600);
 port.DataReceived += DataReceived;
 port.Open();
 
 //Clock();
+//DrawText("Honk !!!");
 DrawPanda();
+
+void DrawText(string text)
+{
+    text = text.PadRight(8);
+    var charMapping = text.Distinct().ToArray()
+        .Select((ch, index) => (Char: ch, Index1: index * 2, Index2: index * 2 + 1))
+        .Select(mapping =>
+        {
+            var data = font.Chars[mapping.Char];
+            SendSetBanks(data.AsSpan(0, 8), mapping.Index1);
+            SendSetBanks(data.AsSpan(8, 8), mapping.Index2);
+            return mapping;
+        }).ToDictionary(mapping => mapping.Char, mapping => (mapping.Index1, mapping.Index2));
+
+    byte[] bytesFromText(string text) =>
+        text.Select(ch => (byte)charMapping[ch].Index1)
+        .Concat(text.Select(ch => (byte)charMapping[ch].Index2))
+        .ToArray();
+
+    SendSetFrames(new Frame[] {
+        new Frame(bytesFromText(text), TimeSpan.Zero)
+    });
+
+    Console.WriteLine($"Send text: {text}");
+}
 
 void Clock()
 {
@@ -57,8 +83,8 @@ void DrawPanda()
 
     SendSetFrames(new[]
     {
-        new Frame(Enumerable.Range(0, 16).Select(i => (byte)i).ToArray(), TimeSpan.FromMilliseconds(500)),
-        new Frame(Enumerable.Range(16, 16).Select(i => (byte)i).ToArray(), TimeSpan.FromMilliseconds(100))
+        new Frame(Enumerable.Range(0, 16).Select(i => (byte)i).ToArray(), TimeSpan.FromMilliseconds(900)),
+        new Frame(Enumerable.Range(16, 16).Select(i => (byte)i).ToArray(), TimeSpan.FromMilliseconds(400))
     });
 }
 
