@@ -19,5 +19,9 @@ namespace TestController
             Array.Copy(value, 0, newValue, y, value.Length - y);
             return newValue;
         }
+
+        public Font ReplaceChars(IEnumerable<KeyValuePair<char, byte[]>> chars) => this with {
+            Chars = Chars.RemoveRange(chars.Select(d => d.Key)).AddRange(chars)
+        };
     }
 }

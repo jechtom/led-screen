@@ -15,6 +15,8 @@ namespace TestController
         {
             var data = new Dictionary<char, byte[]>();
 
+            const int MinBits = 16*8;
+
             int? width = null;
             int? height = null;
             int? inChar = null;
@@ -38,7 +40,7 @@ namespace TestController
                 } else if (width != null && height != null && (match = charRegex.Match(line)).Success)
                 {
                     inChar = int.Parse(match.Groups["val"].Value);
-                    charData = new BitArray(width.Value * height.Value);
+                    charData = new BitArray(Math.Max(MinBits, width.Value * height.Value));
                     charData.SetAll(false);
                     inCharLine = 0;
                 }
@@ -46,7 +48,7 @@ namespace TestController
                 {
                     for (int i = 0; i < width.Value; i++)
                     {
-                        if (line[i] != ' ') charData.Set(i + inCharLine * width.Value, true);
+                        if (line.Length > i && line[i] != ' ') charData.Set(i + inCharLine * width.Value, true);
                     }
 
                     if(++inCharLine >= height.Value)

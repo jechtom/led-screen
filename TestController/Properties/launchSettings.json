@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestController": {
+      "commandName": "Project",
+      "commandLineArgs": "clock COM5 -w"
+    }
+  }
+}
