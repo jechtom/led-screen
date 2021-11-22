@@ -184,7 +184,7 @@ namespace TestController
                     {
                         var result = await loader.RefreshAsync();
                         temp = result.Temp.ToString("0", CultureInfo.InvariantCulture);
-                        tempIcon = (char)(int.Parse(result.Icon.Substring(0, 2)));
+                        tempIcon = (char)(int.Parse(result.Icon.Substring(0, 2))); // TODO validate if valid code 
 
                         try
                         { 
@@ -216,7 +216,7 @@ namespace TestController
 
 
                     display.SendSetFrames(new Frame[] {
-                        new Frame(bytesFromText1Row(text1).Concat(bytesFromText1Row($"{temp}{(char)248}C {weatherIcons[tempIcon]}")).ToArray(), TimeSpan.FromMilliseconds(2000)),
+                        new Frame(bytesFromText1Row(text1).Concat(bytesFromText1Row($"{weatherIcons[tempIcon]} {temp}{(char)248}C")).ToArray(), TimeSpan.FromMilliseconds(2000)),
                         new Frame(bytesFromText1Row("  :  :  ").Concat(bytesFromText1Row("")).ToArray(), TimeSpan.FromMilliseconds(2000))
                     });
 
