@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace TestController
 {
-    public class DisplayClient : IDisposable
+    public class DisplayClient : IDisposable, IDisplayClient
     {
         SerialPort _port;
         AutoResetEvent _successEvent = new AutoResetEvent(initialState: false);
@@ -155,7 +155,7 @@ namespace TestController
         {
             if (_port != null)
             {
-                if(_port.IsOpen)
+                if (_port.IsOpen)
                 {
                     _port.Close();
                 }
