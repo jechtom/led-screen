@@ -11,7 +11,7 @@ namespace TestController
     {
         static async Task<int> Main(string[] args)
         {
-            return await Parser.Default.ParseArguments<ListPortsCommand.Options, TestCommand.Options, PandaCommand.Options, ClockCommand.Options, ClockCommand.Options>(args)
+            return await Parser.Default.ParseArguments<ListPortsCommand.Options, TestCommand.Options, PandaCommand.Options, ClockCommand.Options, ClearCommand.Options>(args)
                 .MapResult(
                     async (ListPortsCommand.Options opts) => await new ListPortsCommand().RunAsync(opts),
                     async (TestCommand.Options opts) => await new TestCommand().RunAsync(opts),
