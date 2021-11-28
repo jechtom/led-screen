@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Polly;
+using Polly.Retry;
+using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
@@ -9,13 +11,26 @@ namespace TestController
 {
     public class DisplayClient : IDisposable, IDisplayClient
     {
+        
         SerialPort _port;
         AutoResetEvent _successEvent = new AutoResetEvent(initialState: false);
         AutoResetEvent _bufferEmptyEvent = new AutoResetEvent(initialState: false);
+        RetryPolicy _retryPolicy;
 
         public DisplayClient(string comPortName)
         {
             _port = new SerialPort(comPortName, 9600, Parity.None, 8, StopBits.One);
+            _retryPolicy = Policy
+              .Handle<DisplayCommunicationException>()
+              .WaitAndRetry(sleepDurations: new[]
+              {
+                TimeSpan.FromSeconds(0.2),
+                TimeSpan.FromSeconds(0.5),
+                TimeSpan.FromSeconds(1),
+                TimeSpan.FromSeconds(2),
+                TimeSpan.FromSeconds(3),
+                TimeSpan.FromSeconds(4)
+              }, onRetry: (er, _) => Console.WriteLine($"Retry. Failed attempt to communicate:\n{er}"));
         }
 
         public void Connect()
@@ -115,6 +130,14 @@ namespace TestController
 
         void SendMessage(byte[] data)
         {
+            // retry command until successful or fails several times
+            _retryPolicy.Execute(() => SendMessageImpl(data));
+        }
+
+        void SendMessageImpl(byte[] data)
+        {
+
+
             _successEvent.Reset();
 
             for (int position = 0; position < data.Length; position += SEND_SEGMENT_SIZE)
@@ -144,8 +167,8 @@ namespace TestController
 
         void WaitForSuccessOrFail()
         {
-            if (_successEvent.WaitOne(TimeSpan.FromSeconds(3))) return; // ok
-            throw new InvalidOperationException("Did not received success response in time.");
+            if (_successEvent.WaitOne(TimeSpan.FromSeconds(1))) return; // ok
+            throw new DisplayCommunicationException("Did not received success response in time.");
         }
 
         public void SendClear()
