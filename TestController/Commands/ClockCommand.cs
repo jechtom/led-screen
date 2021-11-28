@@ -66,6 +66,7 @@ namespace TestController.Commands
 
             var loader = new WeatherLoader();
             string temp = "";
+            char spaceChar = (char)32;
             char tempIcon = (char)99; // unknown
             char christmasTreeIcon = (char)100; // christmas tree
             char calendarIcon = (char)101; // calendar icon
@@ -103,20 +104,47 @@ namespace TestController.Commands
                 });
             }
 
-            byte[] bytesFromText1Row(string text) =>
-                text.PadRight(8).Substring(0, 8).Select(ch => (byte)charMapping[ch].Index1)
-                .ToArray();
+            void UpdateFrameText(Frame frame, string text, int line)
+            {
+                const int CharsPerLineCount = 8;
+                int frameIndex = line * CharsPerLineCount;
+                int index = 0;
+
+                // fill text
+                for(; index < text.Length; index++)
+                {
+                    if (index >= CharsPerLineCount) return;
+                    char ch = text[index];
+                    frame.BankIds[frameIndex++] = (byte)(charMapping[ch].Index1);
+                }
+
+                // add spaces
+                for(; index < CharsPerLineCount; index++)
+                {
+                    frame.BankIds[frameIndex++] = (byte)spaceChar;
+                }
+            }
 
             var taskRefresh = Task.Run(async () =>
             {
                 try
                 {
-                    var frameEmpty = new Frame(bytesFromText1Row("  :  :  ").Concat(bytesFromText1Row("")).ToArray(), TimeSpan.FromMilliseconds(2000));
+                    var frameWork = new Frame(new byte[16], TimeSpan.FromMilliseconds(2000));
+                    var frameEmpty = new Frame(new byte[16], TimeSpan.FromMilliseconds(2000));
+                    
+                    UpdateFrameText(frameEmpty, "  :  :  ", line: 0);
+                    UpdateFrameText(frameEmpty, "        ", line: 1);
+                    
+                    var frames = new Frame[] {
+                        frameWork,
+                        frameEmpty
+                    };
 
                     while (!cancel.Token.IsCancellationRequested)
                     {
                         string text1 = DateTime.Now.ToString("HH:mm:ss");
-                        Console.WriteLine($"Send time {text1}");
+                        //debug: Console.WriteLine($"Send time {text1}");
+                        UpdateFrameText(frameWork, text1, line: 0);
 
                         int tickModulo = (Environment.TickCount / 3000) % 3;
 
@@ -130,10 +158,9 @@ namespace TestController.Commands
                                 $"{weatherIcons[tempIcon]} {temp}{(char)248}C"
                         };
 
-                        display.SendSetFrames(new Frame[] {
-                            new Frame(bytesFromText1Row(text1).Concat(bytesFromText1Row(text2)).ToArray(), TimeSpan.FromMilliseconds(2000)),
-                            frameEmpty
-                        });
+                        UpdateFrameText(frameWork, text2, line: 1);
+
+                        display.SendSetFrames(frames);
 
                         try
                         {
