@@ -41,7 +41,7 @@ namespace TestController.Commands
             int offsetFontWeather = 200;
             Dictionary<int, char> weatherIcons = new int[]
             {
-                1, 2, 3, 4, 9, 10, 11, 13, 50, 99, 100
+                1, 2, 3, 4, 9, 10, 11, 13, 50, 99 /* unknown */, 100 /* christmas */, 101 /* calendar */
             }.Select((val, index) => (val, index))
             .ToDictionary(v => v.val, v => (char)(offsetFontWeather + v.index));
 
@@ -68,6 +68,7 @@ namespace TestController.Commands
             string temp = "";
             char tempIcon = (char)99; // unknown
             char christmasTreeIcon = (char)100; // christmas tree
+            char calendarIcon = (char)101; // calendar icon
 
             var cancel = new CancellationTokenSource();
 
@@ -110,23 +111,29 @@ namespace TestController.Commands
             {
                 try
                 {
+                    var frameEmpty = new Frame(bytesFromText1Row("  :  :  ").Concat(bytesFromText1Row("")).ToArray(), TimeSpan.FromMilliseconds(2000));
+
                     while (!cancel.Token.IsCancellationRequested)
                     {
                         string text1 = DateTime.Now.ToString("HH:mm:ss");
                         Console.WriteLine($"Send time {text1}");
 
+                        int tickModulo = (Environment.TickCount / 3000) % 3;
+
                         string text2 = true switch
                         {
-                            _ when (options.IsChristmasModeEnabled && (Environment.TickCount / 3000) % 2 == 0) =>
+                            _ when (options.IsChristmasModeEnabled && tickModulo == 2) =>
                                 $"{weatherIcons[christmasTreeIcon]} {Math.Max(0, (int)(new DateTime(DateTime.Now.Year, 12, 24) - DateTime.Today).TotalDays)}D",
+                            _ when (tickModulo == 1) =>
+                                $"{weatherIcons[calendarIcon]} {DateTime.Today:d.M.)}",
                             _ =>
                                 $"{weatherIcons[tempIcon]} {temp}{(char)248}C"
                         };
 
                         display.SendSetFrames(new Frame[] {
-                        new Frame(bytesFromText1Row(text1).Concat(bytesFromText1Row(text2)).ToArray(), TimeSpan.FromMilliseconds(2000)),
-                        new Frame(bytesFromText1Row("  :  :  ").Concat(bytesFromText1Row("")).ToArray(), TimeSpan.FromMilliseconds(2000))
-                    });
+                            new Frame(bytesFromText1Row(text1).Concat(bytesFromText1Row(text2)).ToArray(), TimeSpan.FromMilliseconds(2000)),
+                            frameEmpty
+                        });
 
                         try
                         {

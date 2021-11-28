@@ -15,6 +15,8 @@ namespace TestController
         SerialPort _port;
         AutoResetEvent _successEvent = new AutoResetEvent(initialState: false);
         AutoResetEvent _bufferEmptyEvent = new AutoResetEvent(initialState: false);
+        AutoResetEvent _readyForNextCommand = new AutoResetEvent(initialState: false);
+        byte[] _messageBuffer = new byte[256]; // maximum message length
         RetryPolicy _retryPolicy;
 
         public DisplayClient(string comPortName)
@@ -30,39 +32,35 @@ namespace TestController
                 TimeSpan.FromSeconds(2),
                 TimeSpan.FromSeconds(3),
                 TimeSpan.FromSeconds(4)
-              }, onRetry: (er, _) => Console.WriteLine($"Retry. Failed attempt to communicate:\n{er}"));
+              }, onRetry: (er, _) =>
+              {
+                  Console.WriteLine($"Retry. Failed attempt to communicate:\n{er}");
+                  SendDataUntilDeviceIsReadyForNext(); // device in unknown state
+              });
         }
 
         public void Connect()
         {
+            _port.DataReceived += DataReceived;
             _port.Open();
-            WaitForInit();
+            SendDataUntilDeviceIsReadyForNext();
         }
 
-        private void WaitForInit()
+        private void SendDataUntilDeviceIsReadyForNext()
         {
             Console.WriteLine("Waiting for device to be ready...");
 
-            var initResponseEvent = new ManualResetEventSlim();
+            _readyForNextCommand.Reset();
 
-            void InitDataReceived(object sender, SerialDataReceivedEventArgs e)
-            {
-                while (_port.BytesToRead > 0)
-                {
-                    int ch = _port.ReadChar();
-                    if (ch == 'K' /*ok*/ || ch == 'E' /*error*/ || ch == '?' /*unknown-should be 'E' instead */) initResponseEvent.Set();
-                }
-            }
-
-            _port.DataReceived += InitDataReceived;
-
+            // Bombard with data until device will announce error/ok - that mean: ready for next command.
+            // This is needed:
+            //  1) On init - waiting for device/com port to be ready and inited.
+            //  2) On failed transmission device can be in the middle of receiving command data (up to 256B).
+            //     To complete it we will just fill it anything so we can start with sending retry.
             do
             {
                 _port.Write(">");
-            } while (!initResponseEvent.Wait(TimeSpan.FromSeconds(0.5)));
-
-            _port.DataReceived -= InitDataReceived;
-            _port.DataReceived += this.DataReceived;
+            } while (!_readyForNextCommand.WaitOne(TimeSpan.FromSeconds(0.02)));
 
             Console.WriteLine("Device is ready.");
         }
@@ -73,6 +71,7 @@ namespace TestController
             {
                 int ch = _port.ReadChar();
                 //Console.WriteLine($"Received: {(char)ch} / {ch}");
+                if (ch == 'K' /*ok*/ || ch == 'E' /*error*/) _readyForNextCommand.Set();
                 if (ch == 'K') _successEvent.Set();
                 if (ch == '.') _bufferEmptyEvent.Set();
             }
@@ -101,51 +100,55 @@ namespace TestController
                 return;
             }
 
-            var ms = new MemoryStream();
-            ms.Write(new byte[] { 0x0A, 0x42, (byte)fromIndex, (byte)(fromIndex + banksCount - 1) });
-            ms.Write(banks);
-            SendMessage(ms.ToArray());
+            int length = 0;
+            _messageBuffer[length++] = 0x0A;
+            _messageBuffer[length++] = 0x42;
+            _messageBuffer[length++] = (byte)fromIndex;
+            _messageBuffer[length++] = (byte)(fromIndex + banksCount - 1);
+            banks.CopyTo(new Span<byte>(_messageBuffer, length, banks.Length));
+            length += banks.Length;
+            SendMessage(length);
         }
-
-
+        
         public void SendSetFrames(Frame[] frames)
         {
             if (frames.Length > FRAMES_COUNT) throw new ArgumentException("Too much frames.");
             if (frames.Any(f => f.BankIds.Length != FRAME_SIZE)) throw new ArgumentException("At least one of frames got invalid length of bank Ids array.");
             if (frames.Any(f => f.Duration < TimeSpan.Zero || f.Duration.TotalMilliseconds > 255 * 10)) throw new ArgumentException("At least one of frames got invalid duration.");
 
-            var ms = new MemoryStream();
-            ms.Write(new byte[] { 0x0A, 0x46, (byte)frames.Length });
+            int length = 0;
+            _messageBuffer[length++] = 0x0A;
+            _messageBuffer[length++] = 0x46;
+            _messageBuffer[length++] = (byte)frames.Length;
 
             foreach (var frame in frames)
             {
                 byte duration = (byte)(frame.Duration.TotalMilliseconds / 10);
                 if (duration == 0 && frame.Duration > TimeSpan.Zero) duration = 1; // lowest non-zero duration if rounded to zero but not zero
-                ms.Write(frame.BankIds);
-                ms.WriteByte(duration);
+                Buffer.BlockCopy(frame.BankIds, 0, _messageBuffer, length, FRAME_SIZE);
+                length += FRAME_SIZE;
+                _messageBuffer[length++] = duration;
             }
 
-            SendMessage(ms.ToArray());
+            SendMessage(length);
         }
 
-        void SendMessage(byte[] data)
+        void SendMessage(int length)
         {
             // retry command until successful or fails several times
-            _retryPolicy.Execute(() => SendMessageImpl(data));
+            _retryPolicy.Execute(() => SendMessageImpl(length));
         }
 
-        void SendMessageImpl(byte[] data)
+        void SendMessageImpl(int length)
         {
-
-
             _successEvent.Reset();
 
-            for (int position = 0; position < data.Length; position += SEND_SEGMENT_SIZE)
+            for (int position = 0; position < length; position += SEND_SEGMENT_SIZE)
             {
-                var len = Math.Min(data.Length - position, SEND_SEGMENT_SIZE);
-                Console.WriteLine($" > sending data segment ({len}B): {ByteArrayToString(data.AsSpan(position, len))}");
+                var len = Math.Min(length - position, SEND_SEGMENT_SIZE);
+                //debug: Console.WriteLine($" > sending data segment ({len}B): {ByteArrayToString(_messageBuffer.AsSpan(position, len))}");
                 _bufferEmptyEvent.Reset();
-                _port.Write(data, position, len);
+                _port.Write(_messageBuffer, position, len);
                 if (!_bufferEmptyEvent.WaitOne(TimeSpan.FromSeconds(1)))
                 {
                     throw new InvalidOperationException("Did not received success segment read response in time.");

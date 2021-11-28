@@ -104,6 +104,15 @@ Xx x xX
 XXXXXXX
    x  
 
+@CH 101 ;
+          
+xxxxxxx 
+x x x x 
+xx x xx  
+x x x x 
+xx x xx 
+x x x x
+xxxxxxx
 @CH 99 ;
 ██    ██
 ███   ██
