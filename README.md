@@ -1,5 +1,14 @@
 # DIY Led Matrix Display
 
+## RaspberryPi
+
+```
+screen -S led-screen -dm bash -c 'cd ~/led-screen; ./TestController clock /dev/ttyUSB0 -w'
+screen -list # list processes
+screen -r led-screen # reattach to process
+screen -S led-screen -X quit # quit process
+```
+
 ## Protocol
 
 Binary custom protocol between host device and display (Arduino) over COM port to control the display.

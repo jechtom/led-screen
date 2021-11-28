@@ -121,6 +121,9 @@ namespace TestController.Commands
                 }
             });
 
+            // if main taks failes, stop all
+            taskRefresh.ContinueWith(t => cancel.Cancel());
+
             Console.WriteLine("Press enter to exit.");
             Console.ReadLine();
             cancel.Cancel();
