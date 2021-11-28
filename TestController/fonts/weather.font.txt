@@ -94,6 +94,16 @@
 ██ ███ █
  
 
+@CH 100 ;
+          
+   x    
+  x x   
+ x x x   
+x x x x 
+Xx x xX 
+XXXXXXX
+   x  
+
 @CH 99 ;
 ██    ██
 ███   ██

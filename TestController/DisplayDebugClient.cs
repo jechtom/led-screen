@@ -18,17 +18,14 @@ namespace TestController
 
         public void SendClear()
         {
-            throw new NotImplementedException();
         }
 
         public void SendSetBanks(Span<byte> banks, int fromIndex)
         {
-            throw new NotImplementedException();
         }
 
         public void SendSetFrames(Frame[] frames)
         {
-            throw new NotImplementedException();
         }
     }
 }

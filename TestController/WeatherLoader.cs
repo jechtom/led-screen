@@ -27,7 +27,7 @@ namespace TestController
             string json = await _httpClient.GetStringAsync(url);
             var weather = JObject.Parse(json);
             Console.WriteLine($"Weather data:\n{json}");
-            return (weather["main"]["temp"].Value<decimal>(), weather["weather"].First["icon"].Value<string>() ?? String.Empty);
+            return (weather["main"]["temp"].Value<decimal>(), weather["weather"].First["icon"].Value<string>() ?? string.Empty);
         }
 
         /* Example:

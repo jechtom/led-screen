@@ -63,21 +63,26 @@ namespace TestController
             }
         }
 
-        const int BanksCount = 64;
-        const int BanksBatchLimit = 31; // 31 * 8 + 1 < 256 (message limit)
-
+        public const int BANKS_COUNT = 64; // banks count in device memory
+        public const int COMMAND_SET_BANKS_LIMIT_BANKS = 31; // 1 + 31 * 8 < 256 (message limit) - maximum number of banks in single batch
+        public const int BANK_SIZE = 8; // size of single bank item
+        public const int FRAME_SIZE = 16; // size of single frame
+        public const int FRAMES_COUNT = 14; // frames maximum count in device memory
+        public const int FRAME_SIZE_MESSAGE = FRAME_SIZE + 1; // size of single frame message (includes delay byte)
+        public const int SEND_SEGMENT_SIZE = 64; // maximum number of bytes to send before waiting for confirmation - to prevent device buffer overflow
+        
         public void SendSetBanks(Span<byte> banks, int fromIndex)
         {
             if (banks.Length == 0) throw new ArgumentException("Zero length array is invalid.");
-            if (banks.Length % 8 != 0) throw new ArgumentException("Invalid array length. Length % 8 != 0.");
-            int banksCount = banks.Length / 8;
-            if (fromIndex + banksCount > BanksCount) throw new ArgumentException("Bank Ids is out of capacity.");
+            if (banks.Length % BANK_SIZE != 0) throw new ArgumentException($"Invalid array length. Length % {BANK_SIZE} != 0.");
+            int banksCount = banks.Length / BANK_SIZE;
+            if (fromIndex + banksCount > BANKS_COUNT) throw new ArgumentException($"Bank Ids is out of capacity. Banks count: {BANKS_COUNT}");
 
             // split to multiple requests if needed
-            if (banksCount > BanksBatchLimit)
+            if (banksCount > COMMAND_SET_BANKS_LIMIT_BANKS)
             {
-                SendSetBanks(banks.Slice(0, BanksBatchLimit * 8), fromIndex);
-                SendSetBanks(banks.Slice(BanksBatchLimit * 8), fromIndex + BanksBatchLimit);
+                SendSetBanks(banks.Slice(0, COMMAND_SET_BANKS_LIMIT_BANKS * BANK_SIZE), fromIndex);
+                SendSetBanks(banks.Slice(COMMAND_SET_BANKS_LIMIT_BANKS * BANK_SIZE), fromIndex + COMMAND_SET_BANKS_LIMIT_BANKS);
                 return;
             }
 
@@ -90,8 +95,8 @@ namespace TestController
 
         public void SendSetFrames(Frame[] frames)
         {
-            if (frames.Length > 14) throw new ArgumentException("Too much frames.");
-            if (frames.Any(f => f.BankIds.Length != 16)) throw new ArgumentException("At least one of frames got invalid length of bank Ids array.");
+            if (frames.Length > FRAMES_COUNT) throw new ArgumentException("Too much frames.");
+            if (frames.Any(f => f.BankIds.Length != FRAME_SIZE)) throw new ArgumentException("At least one of frames got invalid length of bank Ids array.");
             if (frames.Any(f => f.Duration < TimeSpan.Zero || f.Duration.TotalMilliseconds > 255 * 10)) throw new ArgumentException("At least one of frames got invalid duration.");
 
             var ms = new MemoryStream();
@@ -112,11 +117,9 @@ namespace TestController
         {
             _successEvent.Reset();
 
-            const int segmentLength = 64;
-
-            for (int position = 0; position < data.Length; position += segmentLength)
+            for (int position = 0; position < data.Length; position += SEND_SEGMENT_SIZE)
             {
-                var len = Math.Min(data.Length - position, segmentLength);
+                var len = Math.Min(data.Length - position, SEND_SEGMENT_SIZE);
                 Console.WriteLine($" > sending data segment ({len}B): {ByteArrayToString(data.AsSpan(position, len))}");
                 _bufferEmptyEvent.Reset();
                 _port.Write(data, position, len);
@@ -141,7 +144,7 @@ namespace TestController
 
         void WaitForSuccessOrFail()
         {
-            if (_successEvent.WaitOne(TimeSpan.FromSeconds(1))) return; // ok
+            if (_successEvent.WaitOne(TimeSpan.FromSeconds(3))) return; // ok
             throw new InvalidOperationException("Did not received success response in time.");
         }
 

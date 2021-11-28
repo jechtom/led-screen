@@ -1,12 +1,15 @@
-﻿// See https://aka.ms/new-console-template for more information
-public class Frame
+﻿namespace TestController
 {
-    public Frame(byte[] bankIds, TimeSpan duration)
+    public class Frame
     {
-        this.BankIds = bankIds;
-        this.Duration = duration;
-    }
+        public Frame(byte[] bankIds, TimeSpan duration)
+        {
+            if (bankIds.Length != DisplayClient.FRAME_SIZE) throw new ArgumentException("Invalid size of frame.", nameof(bankIds));
+            BankIds = bankIds;
+            Duration = duration;
+        }
 
-    public byte[] BankIds { get; set; }
-    public TimeSpan Duration { get; set; }
+        public byte[] BankIds { get; set; }
+        public TimeSpan Duration { get; set; }
+    }
 }
