@@ -39,13 +39,13 @@ namespace TestController.Commands
         async Task ClockAsync(IDisplayClientWithBatches display, Options options)
         {
             int offsetFontWeather = 200;
-            Dictionary<int, char> weatherIcons = new int[]
+            Dictionary<int, char> icons = new int[]
             {
-                1, 2, 3, 4, 9, 10, 11, 13, 50, 99 /* unknown */, 100 /* christmas */, 101 /* calendar */
+                1, 2, 3, 4, 9, 10, 11, 13, 50, 99 /* unknown */, 100 /* christmas */, 101 /* christmas2 */, 102 /* heart */, 103 /* calendar */
             }.Select((val, index) => (val, index))
             .ToDictionary(v => v.val, v => (char)(offsetFontWeather + v.index));
 
-            font = font.ReplaceChars(weatherIcons.Select(ic => new KeyValuePair<char, byte[]>(ic.Value, fontWeather.Chars[(char)ic.Key])));
+            font = font.ReplaceChars(icons.Select(ic => new KeyValuePair<char, byte[]>(ic.Value, fontWeather.Chars[(char)ic.Key])));
 
             Dictionary<char, (int Index1, int Index2)> charMapping;
 
@@ -54,7 +54,7 @@ namespace TestController.Commands
                 charMapping = new char[]
                 {
                 ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', 'C', '.', ',', '-', 'D', (char)248/*degrees*/
-                }.Concat(weatherIcons.Values).Select((ch, index) => (Char: ch, Index1: index, Index2: -1))
+                }.Concat(icons.Values).Select((ch, index) => (Char: ch, Index1: index, Index2: -1))
                 .Select(mapping =>
                 {
                     var data = font.Chars[mapping.Char];
@@ -69,7 +69,9 @@ namespace TestController.Commands
             char spaceChar = (char)32;
             char tempIcon = (char)99; // unknown
             char christmasTreeIcon = (char)100; // christmas tree
-            char calendarIcon = (char)101; // calendar icon
+            char christmasTree2Icon = (char)101; // christmas tree 2
+            char heartIcon = (char)102; // 
+            char calendarIcon = (char)103; // calendar icon
 
             var cancel = new CancellationTokenSource();
 
@@ -147,15 +149,22 @@ namespace TestController.Commands
                         UpdateFrameText(frameWork, text1, line: 0);
 
                         int tickModulo = (Environment.TickCount / 3000) % 3;
+                        bool tickeModulo2 = (Environment.TickCount / 1000) % 2 == 0;
+                        int daysUntilChristmas = Math.Min(99, Math.Max(0, (int)(new DateTime(DateTime.Now.Year, 12, 24) - DateTime.Today).TotalDays));
+
+                        int christmasTreeIconX = tickeModulo2 ? christmasTreeIcon : christmasTree2Icon;
+                        int christmasTreeIconY = tickeModulo2 ? christmasTree2Icon : christmasTreeIcon;
 
                         string text2 = true switch
                         {
                             _ when (options.IsChristmasModeEnabled && tickModulo == 2) =>
-                                $"{weatherIcons[christmasTreeIcon]} {Math.Max(0, (int)(new DateTime(DateTime.Now.Year, 12, 24) - DateTime.Today).TotalDays)}D",
+                                daysUntilChristmas > 0 ?
+                                $"{icons[heartIcon]}{icons[christmasTreeIconX]} {daysUntilChristmas:00} {icons[christmasTreeIconY]}{icons[heartIcon]}"
+                                : $"{icons[heartIcon]}{icons[christmasTreeIconX]}{icons[heartIcon]}{icons[christmasTreeIconY]}{icons[heartIcon]}{icons[christmasTreeIconX]}{icons[heartIcon]}{icons[christmasTreeIconY]}",
                             _ when (tickModulo == 1) =>
-                                $"{weatherIcons[calendarIcon]} {DateTime.Today:d.M.}",
+                                $"  {DateTime.Today:d.M.}",
                             _ =>
-                                $"{weatherIcons[tempIcon]} {temp}{(char)248}C"
+                                $"{icons[tempIcon]} {temp}{(char)248}C"
                         };
 
                         UpdateFrameText(frameWork, text2, line: 1);
