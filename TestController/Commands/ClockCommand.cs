@@ -153,7 +153,7 @@ namespace TestController.Commands
                             _ when (options.IsChristmasModeEnabled && tickModulo == 2) =>
                                 $"{weatherIcons[christmasTreeIcon]} {Math.Max(0, (int)(new DateTime(DateTime.Now.Year, 12, 24) - DateTime.Today).TotalDays)}D",
                             _ when (tickModulo == 1) =>
-                                $"{weatherIcons[calendarIcon]} {DateTime.Today:d.M.)}",
+                                $"{weatherIcons[calendarIcon]} {DateTime.Today:d.M.}",
                             _ =>
                                 $"{weatherIcons[tempIcon]} {temp}{(char)248}C"
                         };
