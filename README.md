@@ -9,6 +9,37 @@ screen -r led-screen # reattach to process
 screen -S led-screen -X quit # quit process
 ```
 
+### Systemd Installation
+
+Edit `sudo nano /lib/systemd/system/led-clock.service`:
+```
+[Unit]
+Description=LED Screen Clock Service
+After=multi-user.target
+
+[Service]
+User=pi
+Environment="DOTNET_ROOT=/home/pi/.dotnet"
+Type=simple
+ExecStart=bash -c "cd ~/led-screen; ./TestController clock /dev/ttyUSB0 -w -c --dontexit"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable on boot:
+```
+sudo chmod 644 /lib/systemd/system/led-clock.service
+sudo systemctl daemon-reload
+sudo systemctl enable led-clock.service
+```
+
+Test with:
+```
+sudo systemctl start led-clock.service
+sudo systemctl status led-clock.service
+```
+
 ## Protocol
 
 Binary custom protocol between host device and display (Arduino) over COM port to control the display.

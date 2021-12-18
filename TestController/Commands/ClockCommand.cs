@@ -195,6 +195,12 @@ namespace TestController.Commands
             // create task to register manual exit
             var manualCancelTask = Task.Run(() =>
             {
+                if (options.DontExit)
+                {
+                    Console.WriteLine("No exit.");
+                    return;
+                }
+
                 Console.WriteLine("Press enter to exit.");
                 Console.ReadLine();
                 cancel.Cancel();
