@@ -21,18 +21,16 @@ namespace TestController
 
         public DisplayClient(string comPortName)
         {
+            TimeSpan ShortRetryInterval = TimeSpan.FromMilliseconds(250);
+            TimeSpan LongRetryInterval = TimeSpan.FromMilliseconds(2500);
+            const int ShortRetryUntilRetryNumber = 10;
+            Func<int, TimeSpan> getRetryWaitFromRetryCounter =
+                retryCounter => retryCounter < ShortRetryUntilRetryNumber ? ShortRetryInterval : LongRetryInterval;
+
             _port = new SerialPort(comPortName, 9600, Parity.None, 8, StopBits.One);
             _retryPolicy = Policy
               .Handle<DisplayCommunicationException>()
-              .WaitAndRetry(sleepDurations: new[]
-              {
-                TimeSpan.FromSeconds(0.2),
-                TimeSpan.FromSeconds(0.5),
-                TimeSpan.FromSeconds(1),
-                TimeSpan.FromSeconds(2),
-                TimeSpan.FromSeconds(3),
-                TimeSpan.FromSeconds(4)
-              }, onRetry: (er, _) =>
+              .WaitAndRetryForever(sleepDurationProvider: getRetryWaitFromRetryCounter, onRetry: (er, _) =>
               {
                   Console.WriteLine($"Retry. Failed attempt to communicate:\n{er}");
                   SendDataUntilDeviceIsReadyForNext(); // device in unknown state
