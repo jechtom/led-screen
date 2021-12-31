@@ -30,9 +30,9 @@ namespace TestController
             _port = new SerialPort(comPortName, 9600, Parity.None, 8, StopBits.One);
             _retryPolicy = Policy
               .Handle<DisplayCommunicationException>()
-              .WaitAndRetryForever(sleepDurationProvider: getRetryWaitFromRetryCounter, onRetry: (er, _) =>
+              .WaitAndRetryForever(sleepDurationProvider: getRetryWaitFromRetryCounter, onRetry: (er, timespan) =>
               {
-                  Console.WriteLine($"Retry. Failed attempt to communicate:\n{er}");
+                  Console.WriteLine($"Retry in {timespan}. Failed attempt to communicate:\n{er}");
                   SendDataUntilDeviceIsReadyForNext(); // device in unknown state
               });
         }

@@ -38,6 +38,7 @@ Test with:
 ```
 sudo systemctl start led-clock.service
 sudo systemctl status led-clock.service
+journalctl -u led-clock.service -f # show live logs
 ```
 
 ## Protocol
